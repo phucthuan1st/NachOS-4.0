@@ -3,6 +3,8 @@
         "syscall.h": "c",
         "*.tcc": "c",
         "functional": "c",
-        "system_error": "c"
+        "system_error": "c",
+        "iostream": "cpp",
+        "new": "cpp"
     }
 }

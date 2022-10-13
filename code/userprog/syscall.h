@@ -45,7 +45,6 @@
 #define SC_ReadString 50
 #define SC_PrintString 51
 
-
 #ifndef IN_ASM
 
 int ReadNum();

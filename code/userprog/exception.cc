@@ -196,113 +196,202 @@ void ExceptionHandler(ExceptionType which)
 
 			break;
 
+		// Cau 6
 		case SC_PrintChar:
 		{
-			// input: 1 char
-			// output: none
-			// muc dich: in ra console 1 ki tu char
 			char c = kernel->machine->ReadRegister(4);
 			kernel->synchConsoleOut->PutChar(c);
 			increasePC();
 			return;
 		}
 
+		// Cau 4
 		case SC_PrintNum:
 		{
-			// Input: 1 so nguyen kieu int
-			// Return: none
-			// Tac dung: in mot so nguyen kieu int ra console
 			int number;
-			int temp;
+			int temp_number;
 			char *buffer;
-			int countDigits, indexStart, MAX_SIZE_BUFFER;
 			int i;
-			countDigits = 0; // So digit cua number
-			indexStart = 0;	 // Vi tri bat dau in chu so
-
-			MAX_SIZE_BUFFER = 11; // 1: sign, 10: digits vi so nguyen kieu int toi da can 10 digits
+			int count_digits = 0; // Dem so chu so trong number (bo ki tu - neu la so am)
+			int index_start = 0;  // Vi tri bat dau in chu so (trong truong hop so am thi la 1)
+			int max_size = 11;	  // 1: dau, 10: digit so nguyen thi 10 phan tu la du
 			number = kernel->machine->ReadRegister(4);
-
 			if (number == 0)
 			{										   // truong hop de xu ly nhat
 				kernel->synchConsoleOut->PutChar('0'); // In ra man hinh so 0
 				increasePC();
 				return;
 			}
-
 			/*Chuyen so thanh chuoi roi in ra man hinh*/
 			if (number < 0)
 			{
-
 				number = -number; // Chuyen thanh so duong => easy
-				indexStart = 1;
+				index_start = 1;
 			}
-
-			temp = number;	 // bien tam cho number
-			while (temp > 0) // dem so digits
-			{
-				countDigits++;
-				temp /= 10;
+			temp_number = number; // bien tam cho number
+			while (temp_number > 0)
+			{ // dem so digits
+				count_digits++;
+				temp_number /= 10;
 			}
-
-			// Tao buffer chuoi de in ra man hinh
 			// int: [-2147483648, 2147483647]
-			buffer = new char[MAX_SIZE_BUFFER + 1];
-			for (i = countDigits - 1 + indexStart; i >= indexStart; i--)
+			buffer = new char[max_size + 1];
+			for (i = count_digits - 1 + index_start; i >= index_start; i--)
 			{
 				buffer[i] = (char)((number % 10) + '0'); // Lay tung chu so vao buffer
 				number /= 10;
 			}
-			if (indexStart == 1)
+			if (index_start == 1)
 			{ // Neu la so am
 				buffer[0] = '-';
-				buffer[countDigits + 1] = 0;
-				for (i = 0; i <= countDigits; i++)
+				buffer[count_digits + 1] = 0; // Ket thuc chuoi la 0
+				for (i = 0; i <= count_digits; i++)
 				{
 					kernel->synchConsoleOut->PutChar(buffer[i]);
 				}
-
-				delete buffer;
+				delete[] buffer;
 			}
 			else
-			{ // Neu la so duong
-				buffer[countDigits] = 0;
-				for (i = 0; i <= countDigits - 1; i++)
+			{							  // Neu la so duong
+				buffer[count_digits] = 0; // Ket thuc chuoi la 0
+				for (i = 0; i <= count_digits - 1; i++)
 				{
 					kernel->synchConsoleOut->PutChar(buffer[i]);
 				}
-
-				delete buffer;
+				delete[] buffer;
 			}
 			increasePC();
-
 			return;
 		}
+
+		// Cau 9
+		case SC_PrintString:
+		{
+			int virtual_address; // khai bao bien dia chi de doc tu thanh ghi
+			char *strName;		 // ten cua chuoi o phia user space
+			int length;			 // chieu dai chuoi nguoi dung nhap
+			int temp;			 // bien tam de luu
+			char c;
+
+			virtual_address = kernel->machine->ReadRegister(4);
+			temp = virtual_address;
+
+			length = 0;
+			// tinh chieu dai chuoi ma nguoi dung nhap vao
+			do
+			{
+				kernel->machine->ReadMem(temp, 1, (int *)&c);
+				length++;
+				temp = temp + 1;
+			} while (c != '\0');
+
+			strName = User2System(virtual_address, length); // truyen du lieu qua kernel space de xu ly
+
+			if (strName == NULL)
+			{ // kiem tra Truong hop khong du bo nho trong kernel space
+				printf("\nNot enough memory in system\n");
+				DEBUG(dbgAddr, "\nNot enough memory in system\n");
+				kernel->machine->WriteRegister(2, -1); // return error
+				delete strName;
+				increasePC();
+				return;
+			}
+			else
+			{
+				if (strlen(strName) > MAX_LENGTH_STRING)
+				{ // kiem tra neu chieu dai chuoi vuot qua quy dinh 1 chuoi cho phep
+					printf("\nOut of index\n");
+					kernel->machine->WriteRegister(2, -1); // return error
+					delete strName;
+					increasePC();
+					return;
+				}
+				else if (strlen(strName) == 0)
+				{ // nguoi dung ko nhap gi
+					kernel->synchConsoleOut->PutChar('\0');
+					printf("\nEmpty string\n");
+					DEBUG(dbgAddr, "\nEmpty string\n");
+					delete strName;
+					increasePC();
+					return;
+				}
+				else
+				{
+					for (int i = 0; i < length; i++)
+					{
+						kernel->synchConsoleOut->PutChar(strName[i]);
+					}
+					DEBUG(dbgAddr, "\nSuccessful!\n");
+					increasePC();
+					return;
+				}
+			}
+			break;
+		}
+
+		// Cau 5
+		case SC_ReadChar:
+		{
+			char result;
+			char c = 0;
+
+			result = kernel->synchConsoleIn->GetChar();
+			if (result == '\n') // nguoi dung khong nhap
+			{
+				DEBUG(dbgSys, "\nERROR: Empty!\n");
+				printf("\nERROR: Empty!\n");
+			}
+			else // check xem co phai dung 1 ky tu khong?
+			{
+				c = kernel->synchConsoleIn->GetChar();
+				if (c != '\n')
+				{
+					result = 0;
+					DEBUG(dbgSys, "\nERROR: More than one character!\n");
+					printf("\nERROR: More than one character!\n");
+					clearInputBuffer();
+				}
+			}
+			kernel->machine->WriteRegister(2, result);
+			increasePC();
+			return;
+		}
+
+		// Cau 7
+		case SC_RandomNum:
+		{
+			int result;
+			RandomInit(time(NULL));
+			result = RandomNumber();
+			kernel->machine->WriteRegister(2, result);
+			increasePC();
+			return;
+		}
+
+		// Cau 3
 		case SC_ReadNum:
 		{
-			// input : None
-			// output : So nguyen hoac 0
 			long long res; // khai bao ket qua ra ve kieu long long de sau nay ep kieu
 			char c;
-			bool isNegative;
-			bool isEnd, flagZero;
-			isEnd = false;
-			isNegative = false;
-			flagZero = false;
+			bool isEnd = false;			 // Kiem tra dau cach ket thuc so
+			bool isNegative = false;	 // Kiem tra so am
+			bool isContainDigit = false; // Kiem tra chi nhap dau -
 			res = 0;
 			while ((c = kernel->synchConsoleIn->GetChar()) == ' ')
 			{ // kiem tra xem co khoang trang o dau hay khong
 			}
-
-			if (c == '-') // check xem co phai so am hay khong
+			if (c == '-')
+			{ // check xem co phai so am hay khong
 				isNegative = true;
-			else if (c >= '0' &&
-					 c <= '9') // check xem cac ki tu co nam tu 0->9 hay khong
+			}
+			else if (c >= '0' && c <= '9')
+			{ // check xem cac ki tu co nam tu 0->9 hay khong
 				res = res * 10 + (c - '0');
+			}
 			else if (c == '\n')
 			{
-				DEBUG(dbgSys, "\nNguoi dung chua nhap so");
-				printf("\nNguoi dung chua nhap so");
+				DEBUG(dbgSys, "\nUser has not entered any number yet\n");
+				printf("\nUser has not entered any number yet\n");
 				res = 0;
 				kernel->machine->WriteRegister(2, int(res));
 				increasePC();
@@ -310,25 +399,20 @@ void ExceptionHandler(ExceptionType which)
 			}
 			else
 			{
-				DEBUG(dbgSys, "\nError!!!Nguoi dung nhap ki tu sai so nguyen");
+				DEBUG(dbgSys, "\nError!!!User entered invalid character\n");
 				res = 0;
 				kernel->machine->WriteRegister(2, int(res));
-				printf("khong phai so nguyen");
-				// while(kernel->synchConsoleIn->GetChar()!='\n')
-				// {
-
-				// }
+				printf("\nError!!!User entered invalid character\n");
 				clearInputBuffer();
 				increasePC();
 				return;
 			}
 			while ((c = kernel->synchConsoleIn->GetChar()) != '\n')
 			{ // doc den luc Enter xuong dong
-
 				if (c >= '0' && c <= '9' && isEnd == false)
 				{
 					res = res * 10 + (c - '0');
-					flagZero = true;
+					isContainDigit = true;
 				}
 				else if (c == ' ')
 				{ // neu nhan them khoang trang thi den day la ket thuc
@@ -336,62 +420,104 @@ void ExceptionHandler(ExceptionType which)
 				}
 				else
 				{ // neu la cac ki tu khac thi loi
-					DEBUG(dbgSys, "\nError!!!This is not a number");
+					DEBUG(dbgSys, "\nError!!!This is not a number\n");
 					res = 0;
-					;
-					printf("\nError!!!This is not a number");
+					printf("\nError!!!This is not a number\n");
 					kernel->machine->WriteRegister(2, int(res));
-
 					clearInputBuffer();
-					// while(kernel->synchConsoleIn->GetChar()!='\n')
-					// {
-
-					// }
 					increasePC();
-
 					return;
 				}
 			}
 			if (isNegative)
+			{ // So am thi lay am gia tri res
 				res = -res;
+			}
 			if (res > INT_MAX)
 			{ // kiem tra so nguyen co lon hon quy dinh hay khong INT MAX 2147483647
-				DEBUG(dbgSys, "\nError!!!This number is so large");
-				printf("\nSo qua lon");
+				DEBUG(dbgSys, "\nError!!!This number is so large\n");
+				printf("\nError!!!This number is so large\n");
 				res = 0;
 				kernel->machine->WriteRegister(2, int(res));
-
 				increasePC();
 				return;
 			}
 			else if (res < INT_MIN)
 			{ // kiem tra so nguyen co be hon quy dinh hay khong INT MIN -2147483647
-				DEBUG(dbgSys, "\nError!!!This number is so small");
-				printf("\nSo qua be");
+				DEBUG(dbgSys, "\nError!!!This number is so small\n");
+				printf("\nError!!!This number is so small\n");
 				res = 0;
 				kernel->machine->WriteRegister(2, int(res));
-
 				increasePC();
 				return;
 			}
-			if (isNegative && res == 0 && !flagZero)
+			if (isNegative && res == 0 && !isContainDigit)
 			{ // kiem tra truong hop nguoi dung nhap '-0'
-				DEBUG(dbgSys, "\nError!!!This is (-) only");
+				DEBUG(dbgSys, "\nError!!!This is (-) only\n");
 				res = 0;
-				printf("\nKhong phai la so nguyen ma chi la dau (-)");
+				printf("\nError!!!This is (-) only\n");
 				kernel->machine->WriteRegister(2, int(res));
 				increasePC();
 				return;
 			}
-
-			DEBUG(dbgSys, "\nThis is a number");
+			DEBUG(dbgSys, "\nThis is a number\n");
 			kernel->machine->WriteRegister(2, int(res));
-			// printf("Value: %d", res);
-			//  cout << "so do la" << res;
-
 			increasePC();
 			return;
 		}
+
+		// Cau 8
+		case SC_ReadString:
+		{
+			int virAddr; // khai bao dia chi nhan tu thanh ghi
+			int length;
+			int inputLength;
+			char *strName;
+			char c;
+			bool over_length = false; // Check max_length
+
+			virAddr = kernel->machine->ReadRegister(4); // lay dia chi tu thanh ghi (char buffer[] o user space)
+			length = kernel->machine->ReadRegister(5);	// lay dia chi tu thanh
+			strName = new char[length];					// day se la bien buffer duoc tra ve cho nguoi dung
+			inputLength = 0;
+
+			while ((c = kernel->synchConsoleIn->GetChar()) != '\n')
+			{
+				if (inputLength == length)
+				{
+					over_length = true;
+					break;
+				}
+				strName[inputLength] = c;
+				inputLength++;
+			}
+			strName[inputLength] = '\0';
+			if (over_length)
+			{
+				printf("\nInput out of length\n");
+				delete[] strName;
+				strName = NULL;
+				clearInputBuffer();
+				increasePC();
+				return;
+			}
+			else
+			{
+				int numBytes = System2User(virAddr, inputLength, strName); // chuyen bo nho qua user
+				if (numBytes == 0)
+				{
+					printf("\nEmpty string\n");
+				}
+				else if (numBytes > MAX_LENGTH_STRING)
+				{
+					printf("\nString out of max system length\n");
+					return;
+				}
+				increasePC();
+			}
+			return;
+		}
+
 		default:
 			cerr << "Unexpected system call " << type << "\n";
 			break;

@@ -2,7 +2,7 @@
 
 int main()
 {
-    char s = 't';
-    PrintChar(s);
+    PrintChar('t');
+    PrintChar('\n');
     Halt();
 }

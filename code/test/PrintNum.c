@@ -4,9 +4,9 @@ int main()
 {
     PrintNum(0);
     PrintChar('\n');
-    PrintNum(-2147483647);
+    PrintNum(1850);
     PrintChar('\n');
-    PrintNum(123456);
+    PrintNum(-6845);
     PrintChar('\n');
     Halt();
 }

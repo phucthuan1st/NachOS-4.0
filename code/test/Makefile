@@ -112,7 +112,7 @@ ifeq ($(hosttype),unknown)
 PROGRAMS = unknownhost
 else
 # change this if you create a new test program!
-PROGRAMS = add halt shell matmult sort segments PrintChar PrintNum ReadNum
+PROGRAMS = add halt shell matmult sort segments PrintString PrintNum PrintChar ReadChar ReadString ReadNum RandomNum Help Ascii BubbleSort
 endif
 
 all: $(PROGRAMS)
@@ -156,12 +156,24 @@ matmult.o: matmult.c
 matmult: matmult.o start.o
 	$(LD) $(LDFLAGS) start.o matmult.o -o matmult.coff
 	$(COFF2NOFF) matmult.coff matmult
+	
+PrintString.o: PrintString.c
+	$(CC) $(CFLAGS) -c PrintString.c
+PrintString: PrintString.o start.o
+	$(LD) $(LDFLAGS) start.o PrintString.o -o PrintString.coff
+	$(COFF2NOFF) PrintString.coff PrintString
 
-PrintChar.o: PrintChar.c
-	$(CC) $(CFLAGS) -c PrintChar.c
-PrintChar: PrintChar.o start.o
-	$(LD) $(LDFLAGS) start.o PrintChar.o -o PrintChar.coff
-	$(COFF2NOFF) PrintChar.coff PrintChar
+ReadString.o: ReadString.c
+	$(CC) $(CFLAGS) -c ReadString.c
+ReadString: ReadString.o start.o
+	$(LD) $(LDFLAGS) start.o ReadString.o -o ReadString.coff
+	$(COFF2NOFF) ReadString.coff ReadString
+
+ReadNum.o: ReadNum.c
+	$(CC) $(CFLAGS) -c ReadNum.c
+ReadNum: ReadNum.o start.o
+	$(LD) $(LDFLAGS) start.o ReadNum.o -o ReadNum.coff
+	$(COFF2NOFF) ReadNum.coff ReadNum
 
 PrintNum.o: PrintNum.c
 	$(CC) $(CFLAGS) -c PrintNum.c
@@ -169,11 +181,42 @@ PrintNum: PrintNum.o start.o
 	$(LD) $(LDFLAGS) start.o PrintNum.o -o PrintNum.coff
 	$(COFF2NOFF) PrintNum.coff PrintNum
 
-ReadNum.o: ReadNum.c
-	$(CC) $(CFLAGS) -c ReadNum.c
-ReadNum: ReadNum.o start.o
-	$(LD) $(LDFLAGS) start.o ReadNum.o -o ReadNum.coff
-	$(COFF2NOFF) ReadNum.coff ReadNum
+
+RandomNum.o: RandomNum.c
+	$(CC) $(CFLAGS) -c RandomNum.c
+RandomNum: RandomNum.o start.o
+	$(LD) $(LDFLAGS) start.o RandomNum.o -o RandomNum.coff
+	$(COFF2NOFF) RandomNum.coff RandomNum
+
+ReadChar.o: ReadChar.c
+	$(CC) $(CFLAGS) -c ReadChar.c
+ReadChar: ReadChar.o start.o
+	$(LD) $(LDFLAGS) start.o ReadChar.o -o ReadChar.coff
+	$(COFF2NOFF) ReadChar.coff ReadChar
+
+PrintChar.o: PrintChar.c
+	$(CC) $(CFLAGS) -c PrintChar.c
+PrintChar: PrintChar.o start.o
+	$(LD) $(LDFLAGS) start.o PrintChar.o -o PrintChar.coff
+	$(COFF2NOFF) PrintChar.coff PrintChar
+
+Help.o: Help.c
+	$(CC) $(CFLAGS) -c Help.c
+Help: Help.o start.o
+	$(LD) $(LDFLAGS) start.o Help.o -o Help.coff
+	$(COFF2NOFF) Help.coff Help
+
+Ascii.o: Ascii.c
+	$(CC) $(CFLAGS) -c Ascii.c
+Ascii: Ascii.o start.o
+	$(LD) $(LDFLAGS) start.o Ascii.o -o Ascii.coff
+	$(COFF2NOFF) Ascii.coff Ascii
+
+BubbleSort.o: BubbleSort.c
+	$(CC) $(CFLAGS) -c BubbleSort.c
+BubbleSort: BubbleSort.o start.o
+	$(LD) $(LDFLAGS) start.o BubbleSort.o -o BubbleSort.coff
+	$(COFF2NOFF) BubbleSort.coff BubbleSort
 
 clean:
 	$(RM) -f *.o *.ii
