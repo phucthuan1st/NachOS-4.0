@@ -51,6 +51,7 @@
 //	is in machine.h.
 //----------------------------------------------------------------------
 #define MAX_LENGTH_STRING 2147483647
+#define MAX_SHORT_FILE_NAME 32
 #define INT_MIN -2147483647
 #define INT_MAX 2147483647
 void increasePC()
@@ -121,6 +122,41 @@ int System2User(int virtAddr, int len, char *buffer)
 	return i;
 }
 
+void handle_SC_Create()
+{
+	int virtAddr = kernel->machine->ReadRegister(4);
+	char *filename = User2System(virtAddr, MAX_SHORT_FILE_NAME + 1);
+
+	if (strlen(filename) <= 0)
+	{
+		printf("\nFile name is invalid\n");
+		kernel->machine->WriteRegister(2, -1);
+		delete[] filename;
+		return;
+	}
+
+	if (filename == NULL)
+	{
+		printf("\n Not enough memory in system\n");
+		kernel->machine->WriteRegister(2, -1);
+		delete[] filename;
+		return;
+	}
+
+	bool isCreated = kernel->fileSystem->Create(filename, 0);
+	if (!isCreated)
+	{
+		printf("\n Error: Cannot create file %s!!!", filename);
+		kernel->machine->WriteRegister(2, -1);
+		delete[] filename;
+		return;
+	}
+
+	printf("\nFile %s created successfully!!\n", filename);
+	kernel->machine->WriteRegister(2, 0);
+	delete[] filename;
+}
+
 void ExceptionHandler(ExceptionType which)
 {
 	int type = kernel->machine->ReadRegister(2);
@@ -175,6 +211,7 @@ void ExceptionHandler(ExceptionType which)
 			ASSERTNOTREACHED();
 			break;
 		case SC_Add:
+		{
 			DEBUG(dbgSys, "Add " << kernel->machine->ReadRegister(4) << " + " << kernel->machine->ReadRegister(5) << "\n");
 
 			/* Process SysAdd Systemcall*/
@@ -195,6 +232,7 @@ void ExceptionHandler(ExceptionType which)
 			ASSERTNOTREACHED();
 
 			break;
+		}
 
 		// Cau 6
 		case SC_PrintChar:
@@ -518,6 +556,12 @@ void ExceptionHandler(ExceptionType which)
 			return;
 		}
 
+		case SC_Create:
+		{
+			handle_SC_Create();
+			increasePC();
+			return;
+		}
 		default:
 			cerr << "Unexpected system call " << type << "\n";
 			break;

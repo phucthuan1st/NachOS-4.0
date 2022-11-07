@@ -47,12 +47,25 @@
 
 #ifndef IN_ASM
 
+// Read a number from console input buffer
 int ReadNum();
+
+// Generate a random number
 int RandomNum();
+
+// Read a character from console input buffer
 char ReadChar();
+
+// Print a charracter to console output buffer
 void PrintChar(char character);
+
+// Print a number to console output buffer
 void PrintNum(int number);
+
+// Read a string from console input buffer
 void ReadString(char buffer[],int length);
+
+// Print a string to console output buffer
 void PrintString(char buffer[]);
 
 /* The system call interface.  These are the operations the Nachos

@@ -6,5 +6,6 @@
         "system_error": "c",
         "iostream": "cpp",
         "new": "cpp"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }
