@@ -489,6 +489,12 @@ void handle_SC_Close()
 		return;
 	}
 
+	if (fileDescriptor == 0 || fileDescriptor == 1) {
+		printf("\nConsole IO detected!! Not a file to read or write\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
 	int isClosed = Close(fileDescriptor);
 	if (isClosed < 0)
 	{
@@ -503,9 +509,15 @@ void handle_SC_Close()
 
 void handle_SC_Read()
 {
-
 	int virtAddr = kernel->machine->ReadRegister(4);	  // address of the buffer
 	int size = kernel->machine->ReadRegister(5);		  // size to read
+	
+	if (size <= 0) {
+		printf("\nInvalid size to read\n");
+		kernel->machine->WriteRegister(-2, 1);
+		return;
+	}
+
 	OpenFileId fileID = kernel->machine->ReadRegister(6); // file ID
 
 	if (fileID <= -1)
@@ -515,11 +527,44 @@ void handle_SC_Read()
 		return;
 	}
 
+	if (fileID == 0 || fileID == 1) {
+		printf("\nConsole IO detected!! Not a file to read or write\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
 	char *buffer = new char[size]; // allocate memory for the buffer
 	int nBytes = ReadPartial(fileID, buffer, size);
 
 	System2User(virtAddr, nBytes, buffer);
 	kernel->machine->WriteRegister(2, nBytes);
+}
+
+void handle_SC_Write() {
+	int virtAddr = kernel->machine->ReadRegister(4);	  // address of the buffer
+	char* buffer = User2System(virtAddr, MAX_LENGTH_STRING);
+	int size = kernel->machine->ReadRegister(5);		  // size to write
+	
+	int actual_size_of_buffer = strlen(buffer);
+	
+	OpenFileId fileID = kernel->machine->ReadRegister(6); // file ID
+
+	if (fileID <= -1)
+	{
+		printf("\nCannot open file with descriptor ID %d\n", fileID);
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
+	if (fileID == 0 || fileID == 1) {
+		printf("\nConsole IO detected!! Not a file to read or write\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
+
+	
+	kernel->machine->WriteRegister(2, 1);
 }
 
 void ExceptionHandler(ExceptionType which)
@@ -680,6 +725,11 @@ void ExceptionHandler(ExceptionType which)
 		case SC_Close:
 		{
 			handle_SC_Close();
+			increasePC();
+			return;
+		}
+		case SC_Write: {
+			handle_SC_Write();
 			increasePC();
 			return;
 		}

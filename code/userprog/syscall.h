@@ -151,7 +151,7 @@ int Remove(char *name);
 OpenFileId Open(char *name);
 
 /* Write "size" bytes from "buffer" to the open file. 
- * Return the number of bytes actually read on success.
+ * Return the 1 on success.
  * On failure, a negative error code is returned.
  */
 int Write(char *buffer, int size, OpenFileId id);

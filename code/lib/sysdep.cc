@@ -359,7 +359,6 @@ ReadPartial(int fd, char *buffer, int nBytes)
 // WriteFile
 // 	Write characters to an open file.  Abort if write fails.
 //----------------------------------------------------------------------
-
 void
 WriteFile(int fd, char *buffer, int nBytes)
 {
