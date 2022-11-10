@@ -213,16 +213,18 @@ void handle_SC_Open()
 
 void handle_SC_Close()
 {
-	int fileDescriptor = kernel->machine->ReadRegister(4);
+	OpenFileId fileDescriptor = kernel->machine->ReadRegister(4);
 
 	if (fileDescriptor == -1) {
+		printf("File are not opened\n");
 		kernel->machine->WriteRegister(2, -1);
+		return;
 	}
 
 	int isClosed = Close(fileDescriptor);
 	if (isClosed < 0)
 	{
-		printf("\nCannot close the file with descriptor %d", fileDescriptor);
+		printf("Cannot close the file with descriptor %d\n", fileDescriptor);
 		kernel->machine->WriteRegister(2, isClosed);
 		return;
 	}
@@ -238,6 +240,12 @@ void handle_SC_Read() {
 	int size = kernel->machine->ReadRegister(5); //size to read
 	OpenFileId fileID = kernel->machine->ReadRegister(6); // file ID 
 	
+	if (fileID == -1) {
+		printf("\nCannot open file with descriptor ID %d\n", fileID);
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
 	char* buffer = new char[size]; // allocate memory for the buffer
 	int nBytes = ReadPartial(fileID, buffer, size);
 
