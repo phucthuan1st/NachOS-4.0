@@ -197,15 +197,6 @@ void handle_SC_Open()
 		return;
 	}
 
-	OpenFile *file = kernel->fileSystem->Open(filename);
-
-	if (file == NULL)
-	{
-		kernel->machine->WriteRegister(2, -1);
-		delete[] filename;
-		return;
-	}
-
 	int fileDescriptor = OpenForReadWrite(filename, FALSE);
 	kernel->machine->WriteRegister(2, fileDescriptor);
 	delete[] filename;
