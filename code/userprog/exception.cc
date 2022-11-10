@@ -54,6 +54,7 @@
 #define MAX_SHORT_FILE_NAME 32
 #define INT_MIN -2147483647
 #define INT_MAX 2147483647
+
 void increasePC()
 {
 	/* set previous programm counter (debugging only)*/
@@ -78,6 +79,7 @@ void clearInputBuffer()
 	};
 }
 
+// Copy buffer from User memory space to system memory space
 char *User2System(int virAddr, int limit)
 {
 	int i;
@@ -143,24 +145,28 @@ void handle_SC_Create()
 		return;
 	}
 
-	OpenFile* file = kernel->fileSystem->Open(filename);
+	OpenFile *file = kernel->fileSystem->Open(filename);
 	bool isExisted = (file != NULL);
 	delete file;
 
-	if (isExisted == true) {
+	if (isExisted == true)
+	{
 		printf("\nFile is already existed\n");
 		kernel->machine->WriteRegister(2, -1);
 		delete[] filename;
 		return;
 	}
-	else {
-		try {
+	else
+	{
+		try
+		{
 			kernel->fileSystem->Create(filename);
 			printf("\nFile %s created successfully!!\n", filename);
 			kernel->machine->WriteRegister(2, 0);
 			delete[] filename;
 		}
-		catch(const char* error) {
+		catch (const char *error)
+		{
 			printf("%s", error);
 			kernel->machine->WriteRegister(2, -1);
 			delete[] filename;
@@ -168,6 +174,71 @@ void handle_SC_Create()
 
 		return;
 	}
+}
+
+void handle_SC_Open()
+{
+	int virtAddr = kernel->machine->ReadRegister(4);
+	char *filename = User2System(virtAddr, MAX_SHORT_FILE_NAME);
+
+	if (strlen(filename) <= 0)
+	{
+		printf("\nFile name is invalid\n");
+		kernel->machine->WriteRegister(2, -1);
+		delete[] filename;
+		return;
+	}
+
+	if (filename == NULL)
+	{
+		printf("\n Not enough memory in system\n");
+		kernel->machine->WriteRegister(2, -1);
+		delete[] filename;
+		return;
+	}
+
+	OpenFile *file = kernel->fileSystem->Open(filename);
+
+	if (file == NULL)
+	{
+		kernel->machine->WriteRegister(2, -1);
+		delete[] filename;
+		return;
+	}
+
+	int fileDescriptor = OpenForReadWrite(filename, FALSE);
+	kernel->machine->WriteRegister(2, fileDescriptor);
+	delete[] filename;
+}
+
+void handle_SC_Close()
+{
+	int fileDescriptor = kernel->machine->ReadRegister(4);
+
+	if (fileDescriptor == -1) {
+		kernel->machine->WriteRegister(2, -1);
+	}
+
+	int isClosed = Close(fileDescriptor);
+	if (isClosed < 0)
+	{
+		printf("\nCannot close the file with descriptor %d", fileDescriptor);
+		kernel->machine->WriteRegister(2, isClosed);
+		return;
+	}
+
+	printf("File %d is closed\n", fileDescriptor);
+	kernel->machine->WriteRegister(2, 1);
+	return;
+}
+
+void handle_SC_Read() {
+	// address of the buffer
+	int virtAddr = kernel->machine->ReadRegister(4);
+	int size = kernel->machine->ReadRegister(5);
+	OpenFileId fileID = kernel->machine->ReadRegister(6);
+	char* buffer = new char[size]; // allocate memory for the buffer
+	Read(buffer, size, fileID);
 }
 
 void ExceptionHandler(ExceptionType which)
@@ -572,6 +643,18 @@ void ExceptionHandler(ExceptionType which)
 		case SC_Create:
 		{
 			handle_SC_Create();
+			increasePC();
+			return;
+		}
+		case SC_Open:
+		{
+			handle_SC_Open();
+			increasePC();
+			return;
+		}
+		case SC_Close:
+		{
+			handle_SC_Close();
 			increasePC();
 			return;
 		}
