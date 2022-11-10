@@ -8,9 +8,6 @@ int main() {
     if (Create(filename) < 0) {
         PrintString("Cannot create file\n");
     }
-    else {
-        PrintString("File created successfully\n");
-    }
 
     Halt();
 }
