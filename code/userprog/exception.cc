@@ -125,7 +125,7 @@ int System2User(int virtAddr, int len, char *buffer)
 void handle_SC_Create()
 {
 	int virtAddr = kernel->machine->ReadRegister(4);
-	char *filename = User2System(virtAddr, MAX_SHORT_FILE_NAME + 1);
+	char *filename = User2System(virtAddr, MAX_SHORT_FILE_NAME);
 
 	if (strlen(filename) <= 0)
 	{
@@ -143,18 +143,31 @@ void handle_SC_Create()
 		return;
 	}
 
-	bool isCreated = kernel->fileSystem->Create(filename, 0);
-	if (!isCreated)
-	{
-		printf("\n Error: Cannot create file %s!!!", filename);
+	OpenFile* file = kernel->fileSystem->Open(filename);
+	bool isExisted = (file != NULL);
+	delete file;
+
+	if (isExisted == true) {
+		printf("\nFile is already existed\n");
 		kernel->machine->WriteRegister(2, -1);
 		delete[] filename;
 		return;
 	}
+	else {
+		try {
+			kernel->fileSystem->Create(filename);
+			printf("\nFile %s created successfully!!\n", filename);
+			kernel->machine->WriteRegister(2, 0);
+			delete[] filename;
+		}
+		catch(const char* error) {
+			printf("%s", error);
+			kernel->machine->WriteRegister(2, -1);
+			delete[] filename;
+		}
 
-	printf("\nFile %s created successfully!!\n", filename);
-	kernel->machine->WriteRegister(2, 0);
-	delete[] filename;
+		return;
+	}
 }
 
 void ExceptionHandler(ExceptionType which)

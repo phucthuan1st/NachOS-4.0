@@ -139,7 +139,7 @@ typedef int OpenFileId;
  
 /* Create a Nachos file, with name "name" */
 /* Note: Create does not open the file.   */
-/* Return 1 on success, negative error code on failure */
+/* Return 0 on success, negative error code (-1) on failure */
 int Create(char *name);
 
 /* Remove a Nachos file, with name "name" */
