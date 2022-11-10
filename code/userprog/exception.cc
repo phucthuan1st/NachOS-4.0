@@ -233,12 +233,16 @@ void handle_SC_Close()
 }
 
 void handle_SC_Read() {
-	// address of the buffer
-	int virtAddr = kernel->machine->ReadRegister(4);
-	int size = kernel->machine->ReadRegister(5);
-	OpenFileId fileID = kernel->machine->ReadRegister(6);
+	
+	int virtAddr = kernel->machine->ReadRegister(4); //address of the buffer
+	int size = kernel->machine->ReadRegister(5); //size to read
+	OpenFileId fileID = kernel->machine->ReadRegister(6); // file ID 
+	
 	char* buffer = new char[size]; // allocate memory for the buffer
-	Read(buffer, size, fileID);
+	int nBytes = ReadPartial(fileID, buffer, size);
+
+	System2User(virtAddr, nBytes, buffer);
+	kernel->machine->WriteRegister(2, nBytes);
 }
 
 void ExceptionHandler(ExceptionType which)
@@ -649,6 +653,12 @@ void ExceptionHandler(ExceptionType which)
 		case SC_Open:
 		{
 			handle_SC_Open();
+			increasePC();
+			return;
+		}
+		case SC_Read:
+		{
+			handle_SC_Read();
 			increasePC();
 			return;
 		}
