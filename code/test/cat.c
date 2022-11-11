@@ -15,6 +15,7 @@ int main()
 
 	PrintString("Enter filename: ");
 	ReadString(filename, MAX_SHORT_FILE_NAME);
+
 	fd = Open(filename);
 	if (fd == -1)
 	{
@@ -25,6 +26,7 @@ int main()
 		PrintString("\nContent in ");
 		PrintString(filename);
 		PrintString(" is: \n");
+
 		nBytes = Read(buffer, MAX_LENGTH_OF_FILE, fd);
 		if (nBytes == 0)
 		{

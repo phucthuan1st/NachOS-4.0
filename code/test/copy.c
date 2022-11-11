@@ -24,7 +24,8 @@ int main() {
     PrintString("Destination file path: ");
     ReadString(dst_filename, MAX_SHORT_FILE_NAME);
 
-    PrintString("Waiting for copy....\n");
+    PrintString("Waiting for copy....");
+    PrintChar('\n');
 
     // ------------ Check for src file existence --------------------------------
     src_fileId = Open(src_filename);

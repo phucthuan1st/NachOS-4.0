@@ -50,7 +50,7 @@
 //	"which" is the kind of exception.  The list of possible exceptions
 //	is in machine.h.
 //----------------------------------------------------------------------
-#define MAX_LENGTH_STRING 2147483647
+#define MAX_LENGTH_OF_FILE 2147483647
 #define MAX_SHORT_FILE_NAME 32
 #define INT_MIN -2147483647
 #define INT_MAX 2147483647
@@ -254,8 +254,9 @@ void handle_SC_ReadString()
 		if (numBytes == 0)
 		{
 			printf("\nEmpty string\n");
+			clearInputBuffer();
 		}
-		else if (numBytes > MAX_LENGTH_STRING)
+		else if (numBytes > MAX_LENGTH_OF_FILE)
 		{
 			printf("\nString out of max system length\n");
 		}
@@ -320,7 +321,7 @@ void handle_SC_PrintString()
 	}
 	else
 	{
-		if (strlen(strName) > MAX_LENGTH_STRING)
+		if (strlen(strName) > MAX_LENGTH_OF_FILE)
 		{ // kiem tra neu chieu dai chuoi vuot qua quy dinh 1 chuoi cho phep
 			printf("\nOut of index\n");
 			kernel->machine->WriteRegister(2, -1); // return error
@@ -520,6 +521,12 @@ void handle_SC_Read()
 		return;
 	}
 
+	if (size > MAX_LENGTH_OF_FILE) {
+		printf("Exceed maximum length of file\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
 	OpenFileId fileID = kernel->machine->ReadRegister(6); // file ID
 
 	if (fileID <= -1)
@@ -544,10 +551,22 @@ void handle_SC_Read()
 
 void handle_SC_Write() {
 	int virtAddr = kernel->machine->ReadRegister(4);	  // address of the buffer
-	char* buffer = User2System(virtAddr, MAX_LENGTH_STRING);
 	int size = kernel->machine->ReadRegister(5);		  // size to write
 	
-	int actual_size_of_buffer = strlen(buffer);
+	if (size <= 0) {
+		printf("Invalid size of to write\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
+	if (size > MAX_LENGTH_OF_FILE) {
+		printf("Exceed maximum length of file\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
+	char* buffer = User2System(virtAddr, size + 1);
+	buffer[size] = '\0';
 	
 	OpenFileId fileID = kernel->machine->ReadRegister(6); // file ID
 
@@ -564,16 +583,9 @@ void handle_SC_Write() {
 		return;
 	}
 
-	size = (actual_size_of_buffer <= size) ? actual_size_of_buffer : size;
-	printf("Actual size to write are: %d\n", size);
 	try {
 		WriteFile(fileID, buffer, size);
 		kernel->machine->WriteRegister(2, size);
-		return;
-	}
-	catch (std::exception &e) {
-		printf("Error: %s when write to file\n", e.what());
-		kernel->machine->WriteRegister(2,-1);
 		return;
 	}
 	catch (std::bad_alloc &message) {
@@ -581,7 +593,13 @@ void handle_SC_Write() {
 		kernel->machine->WriteRegister(2,-1);
 		return;
 	}
-	
+	catch (std::exception &e) {
+		printf("Error: %s when write to file\n", e.what());
+		kernel->machine->WriteRegister(2,-1);
+		return;
+	}
+
+	delete[] buffer;
 	kernel->machine->WriteRegister(2, 1);
 }
 
