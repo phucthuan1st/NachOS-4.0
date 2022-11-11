@@ -238,7 +238,7 @@ void handle_SC_ReadString()
 		inputLength++;
 	}
 	strName[inputLength] = '\0';
-	
+
 	if (over_length)
 	{
 		printf("\nInput out of length\n");
@@ -377,6 +377,12 @@ void handle_SC_PrintNum()
 	}
 	// int: [-2147483648, 2147483647]
 	buffer = new char[max_size + 1];
+
+	if (buffer == NULL) {
+		printf("System out of memory\n");
+		return;
+	}
+
 	for (i = count_digits - 1 + index_start; i >= index_start; i--)
 	{
 		buffer[i] = (char)((number % 10) + '0'); // Lay tung chu so vao buffer
@@ -408,6 +414,14 @@ void handle_SC_Create()
 	int virtAddr = kernel->machine->ReadRegister(4);
 	char *filename = User2System(virtAddr, MAX_SHORT_FILE_NAME);
 
+	if (filename == NULL)
+	{
+		printf("\n Not enough memory in system\n");
+		kernel->machine->WriteRegister(2, -1);
+		delete[] filename;
+		return;
+	}
+
 	if (strlen(filename) <= 0)
 	{
 		printf("\nFile name is invalid\n");
@@ -416,13 +430,6 @@ void handle_SC_Create()
 		return;
 	}
 
-	if (filename == NULL)
-	{
-		printf("\n Not enough memory in system\n");
-		kernel->machine->WriteRegister(2, -1);
-		delete[] filename;
-		return;
-	}
 
 	OpenFile *file = kernel->fileSystem->Open(filename);
 	bool isExisted = (file != NULL);
@@ -460,17 +467,17 @@ void handle_SC_Open()
 	int virtAddr = kernel->machine->ReadRegister(4);
 	char *filename = User2System(virtAddr, MAX_SHORT_FILE_NAME);
 
-	if (strlen(filename) <= 0)
+	if (filename == NULL)
 	{
-		printf("\nFile name is invalid\n");
+		printf("\n Not enough memory in system\n");
 		kernel->machine->WriteRegister(2, -1);
 		delete[] filename;
 		return;
 	}
 
-	if (filename == NULL)
+	if (strlen(filename) <= 0)
 	{
-		printf("\n Not enough memory in system\n");
+		printf("\nFile name is invalid\n");
 		kernel->machine->WriteRegister(2, -1);
 		delete[] filename;
 		return;
@@ -492,7 +499,8 @@ void handle_SC_Close()
 		return;
 	}
 
-	if (fileDescriptor == 0 || fileDescriptor == 1) {
+	if (fileDescriptor == 0 || fileDescriptor == 1)
+	{
 		printf("\nConsole IO detected!! Not a file to read or write\n");
 		kernel->machine->WriteRegister(2, -1);
 		return;
@@ -512,16 +520,18 @@ void handle_SC_Close()
 
 void handle_SC_Read()
 {
-	int virtAddr = kernel->machine->ReadRegister(4);	  // address of the buffer
-	int size = kernel->machine->ReadRegister(5);		  // size to read
-	
-	if (size <= 0) {
+	int virtAddr = kernel->machine->ReadRegister(4); // address of the buffer
+	int size = kernel->machine->ReadRegister(5);	 // size to read
+
+	if (size <= 0)
+	{
 		printf("\nInvalid size to read\n");
-		kernel->machine->WriteRegister(-2, 1);
+		kernel->machine->WriteRegister(2, -1);
 		return;
 	}
 
-	if (size > MAX_LENGTH_OF_FILE) {
+	if (size > MAX_LENGTH_OF_FILE)
+	{
 		printf("Exceed maximum length of file\n");
 		kernel->machine->WriteRegister(2, -1);
 		return;
@@ -536,38 +546,102 @@ void handle_SC_Read()
 		return;
 	}
 
-	if (fileID == 0 || fileID == 1) {
-		printf("\nConsole IO detected!! Not a file to read or write\n");
+	if (fileID == 1)
+	{
+		printf("\nConsole Output detected!! Cannot read from there\n");
 		kernel->machine->WriteRegister(2, -1);
 		return;
 	}
 
 	char *buffer = new char[size]; // allocate memory for the buffer
+
+	if (buffer == NULL) {
+		printf("System out of memory\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
+	if (fileID == 0)
+	{
+		int actualSize = 0;
+		char c;
+		while ((c = kernel->synchConsoleIn->GetChar()) != '\n')
+		{
+			if (actualSize == size)
+			{
+				break;
+			}
+			buffer[actualSize++] = c;
+		}
+		buffer[actualSize] = '\0';
+
+		if (actualSize == size)
+		{
+			printf("\nExceeded maximum length\n");
+			delete[] buffer;
+			buffer = NULL;
+			clearInputBuffer();
+			kernel->machine->WriteRegister(2, -1);
+			return;
+		}
+		else
+		{
+			int nBytes = System2User(virtAddr, actualSize, buffer); // chuyen bo nho qua user
+
+			if (nBytes == 0)
+			{
+				printf("\nEmpty string\n");
+				clearInputBuffer();
+				kernel->machine->WriteRegister(2, -1);
+				return;
+			}
+			else if (nBytes > MAX_LENGTH_OF_FILE)
+			{
+				printf("\nString out of max system length\n");
+				kernel->machine->WriteRegister(2, -1);
+				return;
+			}
+
+			kernel->machine->WriteRegister(2, nBytes);
+			return;
+		}
+	}
+
 	int nBytes = ReadPartial(fileID, buffer, size);
 
 	System2User(virtAddr, nBytes, buffer);
 	kernel->machine->WriteRegister(2, nBytes);
 }
 
-void handle_SC_Write() {
-	int virtAddr = kernel->machine->ReadRegister(4);	  // address of the buffer
-	int size = kernel->machine->ReadRegister(5);		  // size to write
-	
-	if (size <= 0) {
+void handle_SC_Write()
+{
+	int virtAddr = kernel->machine->ReadRegister(4); // address of the buffer
+	int size = kernel->machine->ReadRegister(5);	 // size to write
+
+	if (size <= 0)
+	{
 		printf("Invalid size of to write\n");
 		kernel->machine->WriteRegister(2, -1);
 		return;
 	}
 
-	if (size > MAX_LENGTH_OF_FILE) {
+	if (size > MAX_LENGTH_OF_FILE)
+	{
 		printf("Exceed maximum length of file\n");
 		kernel->machine->WriteRegister(2, -1);
 		return;
 	}
 
-	char* buffer = User2System(virtAddr, size + 1);
+	char *buffer = User2System(virtAddr, size + 1);
+
+	if (buffer == NULL) {
+		printf("System out of memory\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
 	buffer[size] = '\0';
-	
+
 	OpenFileId fileID = kernel->machine->ReadRegister(6); // file ID
 
 	if (fileID <= -1)
@@ -577,25 +651,58 @@ void handle_SC_Write() {
 		return;
 	}
 
-	if (fileID == 0 || fileID == 1) {
-		printf("\nConsole IO detected!! Not a file to read or write\n");
+	if (fileID == 0)
+	{
+		printf("\nConsole input detected!! Not a place to write\n");
 		kernel->machine->WriteRegister(2, -1);
 		return;
 	}
 
-	try {
+	if (fileID == 1) {
+		if (strlen(buffer) > MAX_LENGTH_OF_FILE)
+		{ // kiem tra neu chieu dai chuoi vuot qua quy dinh 1 chuoi cho phep
+			printf("\nOut of index\n");
+			kernel->machine->WriteRegister(2, -1); // return error
+			delete buffer;
+			return;
+		}
+		else if (strlen(buffer) == 0)
+		{ // nguoi dung ko nhap gi
+			kernel->synchConsoleOut->PutChar('\0');
+			printf("\nEmpty string\n");
+			DEBUG(dbgAddr, "\nEmpty string\n");
+			delete buffer;
+			kernel->machine->WriteRegister(2, -1);
+			return;
+		}
+		else
+		{
+			for (int i = 0; i < size; i++)
+			{
+				kernel->synchConsoleOut->PutChar(buffer[i]);
+			}
+			DEBUG(dbgAddr, "\nSuccessful!\n");
+			kernel->machine->WriteRegister(2, size);
+			return;
+		}
+	}
+
+	try
+	{
 		WriteFile(fileID, buffer, size);
 		kernel->machine->WriteRegister(2, size);
 		return;
 	}
-	catch (std::bad_alloc &message) {
+	catch (std::bad_alloc &message)
+	{
 		printf("Error: %s when write to file\n", message.what());
-		kernel->machine->WriteRegister(2,-1);
+		kernel->machine->WriteRegister(2, -1);
 		return;
 	}
-	catch (std::exception &e) {
+	catch (std::exception &e)
+	{
 		printf("Error: %s when write to file\n", e.what());
-		kernel->machine->WriteRegister(2,-1);
+		kernel->machine->WriteRegister(2, -1);
 		return;
 	}
 
@@ -629,8 +736,8 @@ void ExceptionHandler(ExceptionType which)
 		SysHalt();
 		break;
 	case AddressErrorException:
-		DEBUG(dbgAddr, "\nUnaligned reference or one that was beyond the end of the address space");
-		printf("\n\n Unaligned reference or one that was beyond the end of the address space");
+		DEBUG(dbgAddr, "\nUnaligned reference or one that was beyond the end of the address space\n");
+		printf("\n\n Unaligned reference or one that was beyond the end of the address space\n");
 		SysHalt();
 		break;
 	case OverflowException:
@@ -764,7 +871,8 @@ void ExceptionHandler(ExceptionType which)
 			increasePC();
 			return;
 		}
-		case SC_Write: {
+		case SC_Write:
+		{
 			handle_SC_Write();
 			increasePC();
 			return;
