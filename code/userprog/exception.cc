@@ -562,7 +562,17 @@ void handle_SC_Write() {
 		return;
 	}
 
-
+	size = (actual_size_of_buffer <= size) ? actual_size_of_buffer : size;
+	try {
+		WriteFile(fileID, buffer, size);
+		kernel->machine->WriteRegister(2, size);
+		return;
+	}
+	catch (const std::exception &e) {
+		printf("Error: %s when write to file\n", e.what());
+		kernel->machine->WriteRegister(2,-1);
+		return;
+	}
 	
 	kernel->machine->WriteRegister(2, 1);
 }
