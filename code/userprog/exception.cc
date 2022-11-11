@@ -238,6 +238,7 @@ void handle_SC_ReadString()
 		inputLength++;
 	}
 	strName[inputLength] = '\0';
+	
 	if (over_length)
 	{
 		printf("\nInput out of length\n");
@@ -249,6 +250,7 @@ void handle_SC_ReadString()
 	else
 	{
 		int numBytes = System2User(virAddr, inputLength, strName); // chuyen bo nho qua user
+
 		if (numBytes == 0)
 		{
 			printf("\nEmpty string\n");
@@ -256,8 +258,8 @@ void handle_SC_ReadString()
 		else if (numBytes > MAX_LENGTH_STRING)
 		{
 			printf("\nString out of max system length\n");
-			return;
 		}
+		return;
 	}
 }
 
@@ -563,13 +565,19 @@ void handle_SC_Write() {
 	}
 
 	size = (actual_size_of_buffer <= size) ? actual_size_of_buffer : size;
+	printf("Actual size to write are: %d\n", size);
 	try {
 		WriteFile(fileID, buffer, size);
 		kernel->machine->WriteRegister(2, size);
 		return;
 	}
-	catch (const std::exception &e) {
+	catch (std::exception &e) {
 		printf("Error: %s when write to file\n", e.what());
+		kernel->machine->WriteRegister(2,-1);
+		return;
+	}
+	catch (std::bad_alloc &message) {
+		printf("Error: %s when write to file\n", message.what());
 		kernel->machine->WriteRegister(2,-1);
 		return;
 	}
