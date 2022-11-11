@@ -112,7 +112,7 @@ ifeq ($(hosttype),unknown)
 PROGRAMS = unknownhost
 else
 # change this if you create a new test program!
-PROGRAMS = add halt shell matmult sort segments PrintString PrintNum PrintChar ReadChar ReadString ReadNum RandomNum Help Ascii BubbleSort Create cat copy
+PROGRAMS = add halt shell matmult sort segments PrintString PrintNum PrintChar ReadChar ReadString ReadNum RandomNum Help Ascii BubbleSort createfile cat copy test
 endif
 
 all: $(PROGRAMS)
@@ -218,11 +218,11 @@ BubbleSort: BubbleSort.o start.o
 	$(LD) $(LDFLAGS) start.o BubbleSort.o -o BubbleSort.coff
 	$(COFF2NOFF) BubbleSort.coff BubbleSort
 
-Create.o: Create.c
-	$(CC) $(CFLAGS) -c Create.c
-Create: Create.o start.o
-	$(LD) $(LDFLAGS) start.o Create.o -o Create.coff
-	$(COFF2NOFF) Create.coff Create
+createfile.o: createfile.c
+	$(CC) $(CFLAGS) -c createfile.c
+createfile: createfile.o start.o
+	$(LD) $(LDFLAGS) start.o createfile.o -o createfile.coff
+	$(COFF2NOFF) createfile.coff createfile
 
 cat.o: cat.c
 	$(CC) $(CFLAGS) -c cat.c
@@ -235,6 +235,12 @@ copy.o: copy.c
 copy: copy.o start.o
 	$(LD) $(LDFLAGS) start.o copy.o -o copy.coff
 	$(COFF2NOFF) copy.coff copy
+
+test.o: test.c
+	$(CC) $(CFLAGS) -c test.c
+test: test.o start.o
+	$(LD) $(LDFLAGS) start.o test.o -o test.coff
+	$(COFF2NOFF) test.coff test
 
 clean:
 	$(RM) -f *.o *.ii

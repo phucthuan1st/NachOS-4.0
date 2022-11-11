@@ -50,7 +50,7 @@
 //	"which" is the kind of exception.  The list of possible exceptions
 //	is in machine.h.
 //----------------------------------------------------------------------
-#define MAX_LENGTH_OF_FILE 2147483647
+#define MAX_LENGTH_OF_FILE 15728640
 #define MAX_SHORT_FILE_NAME 32
 #define INT_MIN -2147483647
 #define INT_MAX 2147483647
@@ -710,6 +710,54 @@ void handle_SC_Write()
 	kernel->machine->WriteRegister(2, 1);
 }
 
+void handle_SC_Seek() {
+	int position = kernel->machine->ReadRegister(4);
+	OpenFileId fileId = kernel->machine->ReadRegister(5);
+
+	if (fileId == 0 || fileId == 1) {
+		printf("Cannot seek in console IO\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
+	if (fileId == -1) {
+		printf("File is not exist\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
+	char* buffer = new char[MAX_LENGTH_OF_FILE];
+
+	if (buffer == NULL) {
+		printf("System out of memory\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
+	int nBytes = ReadPartial(fileId, buffer, MAX_LENGTH_OF_FILE);
+	delete[] buffer;
+
+	if (nBytes < position) {
+		printf("Position exceed file size\n");
+		kernel->machine->WriteRegister(2, -1);
+		return;
+	}
+
+	if (position == -1) {
+		position = nBytes;
+	}
+
+	try {
+		Lseek(fileId, position, 0);
+		kernel->machine->WriteRegister(2, position);
+	}
+	catch (const std::exception &e) {
+		printf("Error when seek to position %d: %s\n", position, e.what());
+		kernel->machine->WriteRegister(2, -1);
+	}
+
+}
+
 void ExceptionHandler(ExceptionType which)
 {
 	int type = kernel->machine->ReadRegister(2);
@@ -874,6 +922,12 @@ void ExceptionHandler(ExceptionType which)
 		case SC_Write:
 		{
 			handle_SC_Write();
+			increasePC();
+			return;
+		}
+		case SC_Seek:
+		{
+			handle_SC_Seek();
 			increasePC();
 			return;
 		}
