@@ -553,14 +553,16 @@ void handle_SC_Read()
 		return;
 	}
 
-	char *buffer = new char[size]; // allocate memory for the buffer
-
+	char *buffer = new char[size + 1]; // allocate memory for the buffer
 	if (buffer == NULL) {
 		printf("System out of memory\n");
 		kernel->machine->WriteRegister(2, -1);
 		return;
 	}
 
+	buffer[size] = '\0';
+
+	// Read from Console Input
 	if (fileID == 0)
 	{
 		int actualSize = 0;
@@ -607,7 +609,8 @@ void handle_SC_Read()
 		}
 	}
 
-	int nBytes = ReadPartial(fileID, buffer, size);
+	int nBytes = ReadPartial(fileID, buffer, MAX_LENGTH_OF_FILE);
+	printf("%d bytes read\n", nBytes);
 
 	System2User(virtAddr, nBytes, buffer);
 	kernel->machine->WriteRegister(2, nBytes);
@@ -726,7 +729,7 @@ void handle_SC_Seek() {
 		return;
 	}
 
-	char* buffer = new char[MAX_LENGTH_OF_FILE];
+	char* buffer = new char[MAX_LENGTH_OF_FILE + 1];
 
 	if (buffer == NULL) {
 		printf("System out of memory\n");
