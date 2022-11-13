@@ -1,7 +1,7 @@
 #include "syscall.h"
 
 #define MAX_SHORT_FILE_NAME 32
-#define MAX_LENGTH_OF_FILE 3000
+#define MAX_LENGTH_OF_FILE 1024
 
 int main()
 {
@@ -15,7 +15,6 @@ int main()
 
 	PrintString("Enter filename: ");
 	ReadString(filename, MAX_SHORT_FILE_NAME);
-	PrintString("We're here\n");
 
 	fd = Open(filename);
 	if (fd == -1)
@@ -35,8 +34,6 @@ int main()
 		}
 		else
 		{
-			// PrintNum(nBytes);
-			// PrintChar('\n');
 			PrintString(buffer);
 			PrintChar('\n');
 		}

@@ -323,7 +323,6 @@ void handle_SC_Read()
 	}
 
 	int nBytes = ReadPartial(fileID, buffer, MAX_LENGTH_OF_FILE);
-	printf("%d bytes read\n", nBytes);
 
 	System2User(virtAddr, nBytes, buffer);
 	kernel->machine->WriteRegister(2, nBytes);
